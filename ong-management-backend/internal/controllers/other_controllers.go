@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/manus/ong-management-backend/internal/models"
-	"github.com/manus/ong-management-backend/internal/repositories"
+	"github.com/ong-gestor-pro/backend/internal/models"
+	"github.com/ong-gestor-pro/backend/internal/repositories"
 )
 
 // Incident Controller

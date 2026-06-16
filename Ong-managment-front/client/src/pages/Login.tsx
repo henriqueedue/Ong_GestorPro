@@ -1,9 +1,49 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { getLoginUrl } from "@/const";
-import { Heart } from "lucide-react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Heart, Loader2 } from "lucide-react";
+import { useNavigate } from "wouter";
+import axios from "axios";
 
 export default function Login() {
-  const loginUrl = getLoginUrl();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
+      const payload = isRegister ? { name, email, password } : { email, password };
+
+      const response = await axios.post(endpoint, payload);
+
+      if (!isRegister) {
+        const token = response.data.token;
+        await login(token);
+        navigate("/");
+      } else {
+        setIsRegister(false);
+        setError("Cadastro realizado com sucesso! Faça login para continuar.");
+      }
+    } catch (err: unknown) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.error || "Erro ao processar requisição");
+      } else {
+        setError("Erro ao processar requisição");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 flex items-center justify-center p-4">
@@ -21,23 +61,90 @@ export default function Login() {
             </p>
           </div>
 
-          <div className="space-y-4">
-            <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
-              Faça login com sua conta para acessar o sistema
-            </p>
-            <a href={loginUrl}>
-              <Button
-                size="lg"
-                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold"
-              >
-                Entrar com Manus
-              </Button>
-            </a>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isRegister && (
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                  Nome
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  placeholder="Seu nome"
+                  required={isRegister}
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Email
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                placeholder="seu@email.com"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Senha
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+            </div>
+
+            {error && (
+              <div className="text-red-500 text-sm text-center">{error}</div>
+            )}
+
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold"
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isRegister ? (
+                "Cadastrar"
+              ) : (
+                "Entrar"
+              )}
+            </Button>
+          </form>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsRegister(!isRegister);
+                setError("");
+              }}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+            >
+              {isRegister
+                ? "Já tem conta? Faça login"
+                : "Não tem conta? Cadastre-se"}
+            </button>
           </div>
 
           <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
             <p className="text-xs text-center text-slate-500 dark:text-slate-400">
-              Sistema seguro com autenticação OAuth
+              Sistema seguro com autenticação JWT
             </p>
           </div>
         </div>

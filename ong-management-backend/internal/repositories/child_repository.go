@@ -1,7 +1,7 @@
 package repositories
 
 import (
-	"github.com/manus/ong-management-backend/internal/models"
+	"github.com/ong-gestor-pro/backend/internal/models"
 	"gorm.io/gorm"
 )
 

@@ -15,7 +15,7 @@
 - [x] Implementar testes vitest para procedures críticos
 
 ## Frontend - Autenticação
-- [x] Tela de login com OAuth Manus
+- [x] Tela de login com OAuth Ong
 - [x] Redirecionamento para dashboard após login
 - [x] Logout funcional
 

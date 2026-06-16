@@ -1,4 +1,4 @@
-module github.com/manus/ong-management-backend
+module github.com/ong-gestor-pro/backend
 
 go 1.25.0
 

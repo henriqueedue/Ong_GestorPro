@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/manus/ong-management-backend/internal/services"
+	"github.com/ong-gestor-pro/backend/internal/services"
 )
 
 type AuthController struct {

@@ -6,8 +6,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
-	"github.com/manus/ong-management-backend/internal/database"
-	"github.com/manus/ong-management-backend/internal/routes"
+	"github.com/ong-gestor-pro/backend/internal/database"
+	"github.com/ong-gestor-pro/backend/internal/routes"
 )
 
 func main() {

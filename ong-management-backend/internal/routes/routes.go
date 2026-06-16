@@ -4,11 +4,11 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
-	"github.com/manus/ong-management-backend/internal/controllers"
-	"github.com/manus/ong-management-backend/internal/database"
-	"github.com/manus/ong-management-backend/internal/middleware"
-	"github.com/manus/ong-management-backend/internal/repositories"
-	"github.com/manus/ong-management-backend/internal/services"
+	"github.com/ong-gestor-pro/backend/internal/controllers"
+	"github.com/ong-gestor-pro/backend/internal/database"
+	"github.com/ong-gestor-pro/backend/internal/middleware"
+	"github.com/ong-gestor-pro/backend/internal/repositories"
+	"github.com/ong-gestor-pro/backend/internal/services"
 )
 
 func SetupRoutes(router *gin.Engine) {

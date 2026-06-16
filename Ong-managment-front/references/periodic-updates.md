@@ -11,7 +11,7 @@ Forbidden: `setInterval`, `node-cron`, or any in-process timer. Cloud Run termin
 Two flavors. The difference is what runs at trigger time:
 
 - **Heartbeat (HTTP cron).** Platform POSTs directly to `/api/scheduled/*` on this site. Your handler runs and returns. No agent spawned — if the handler needs an LLM call, do it inline via the site's own LLM SDK (`server/_core/llm.ts`).
-- **AGENT cron.** Platform spawns a fresh, isolated Manus session that runs the prompt you wrote at create time. The agent has the full Manus toolchain — browser, file system, shell, image gen, deep research — but **no** session history, DB, source code, or credentials beyond the two env vars `$SCHEDULED_TASK_ENDPOINT_BASE` / `$SCHEDULED_TASK_COOKIE`. If your prompt tells it to, it `curl`s back to `/api/scheduled/*` on this site at the end.
+- **AGENT cron.** Platform spawns a fresh, isolated Ong session that runs the prompt you wrote at create time. The agent has the full Ong toolchain — browser, file system, shell, image gen, deep research — but **no** session history, DB, source code, or credentials beyond the two env vars `$SCHEDULED_TASK_ENDPOINT_BASE` / `$SCHEDULED_TASK_COOKIE`. If your prompt tells it to, it `curl`s back to `/api/scheduled/*` on this site at the end.
 
 Decision: AGENT cron only if the trigger genuinely needs **agentic capabilities** — i.e. tool use beyond a single LLM call: web browsing, file manipulation, shell, deep research, multi-step planning, etc. A one-shot LLM completion belongs inline in a Heartbeat handler. Do not attempt to replicate complex agentic flows using website-inbuilt capabilities, if it could be outsourced to AGENT cron. End-user-defined schedules (UI on this site lets a user pick when X runs) are **always** Heartbeat — see §3.
 
@@ -85,33 +85,33 @@ res.json({ ok: true });
 app.post("/api/scheduled/sendMarketing", sendMarketingHandler);
 ```
 
-After deploy, end-users create their own crons via your tRPC mutation. As the project owner, you can also inspect / pause / resume / view logs for any end-user's cron from the sandbox terminal — `manus-heartbeat list --user-id u_xxx` and friends; see §5b. End-users can never see another user's cron through your tRPC SDK.
+After deploy, end-users create their own crons via your tRPC mutation. As the project owner, you can also inspect / pause / resume / view logs for any end-user's cron from the sandbox terminal — `ong-heartbeat list --user-id u_xxx` and friends; see §5b. End-users can never see another user's cron through your tRPC SDK.
 
 ---
 
 ## 4. Variants — when the trigger isn't an end-user
 
-Same callback handler, same `/api/scheduled/*` URL, same `user.isCron` check, **same Manus-platform-managed cron lifecycle** (cron persistence and triggering live entirely on the platform, independent of any sandbox session). Only the **creator** changes.
+Same callback handler, same `/api/scheduled/*` URL, same `user.isCron` check, **same Ong-platform-managed cron lifecycle** (cron persistence and triggering live entirely on the platform, independent of any sandbox session). Only the **creator** changes.
 
 ### 4a. Project-level Heartbeat (no end-user)
 
 For crons your end-users never see (nightly DB cleanup, daily digest to admins, hourly external-API ping) — the cron is owned by the project owner identity. Create via the sandbox CLI (see §5b for the full subcommand list):
 
 ```bash
-manus-heartbeat create \
+ong-heartbeat create \
   --name nightly-cleanup \
   --cron "0 0 3 * * *" \
   --path /api/scheduled/cleanup \
   --description "Nightly expired-row cleanup"
 ```
 
-The created cron lives on the Manus platform, not in this sandbox: it survives sandbox hibernation/teardown and keeps firing as long as the deployed site is reachable. Any future Manus session can `manus-heartbeat list` / `update` / `pause` / `delete` it — the cron is bound to the project owner, not to the build session that created it.
+The created cron lives on the Ong platform, not in this sandbox: it survives sandbox hibernation/teardown and keeps firing as long as the deployed site is reachable. Any future Ong session can `ong-heartbeat list` / `update` / `pause` / `delete` it — the cron is bound to the project owner, not to the build session that created it.
 
-Persist the returned `task_uid` somewhere durable (admin DB row / config) if you'll need to update/delete it later — `manus-heartbeat list` can also recover it.
+Persist the returned `task_uid` somewhere durable (admin DB row / config) if you'll need to update/delete it later — `Ong-heartbeat list` can also recover it.
 
 ### 4b. AGENT cron — when the trigger needs agentic capabilities
 
-Created via the `schedule` tool inside this Manus session (not from site code). Each trigger spawns a **fresh, isolated** Manus agent — no session history, no source/DB/credentials, no skills. The only knowledge transfer is whatever you write into the cron prompt.
+Created via the `schedule` tool inside this Ong session (not from site code). Each trigger spawns a **fresh, isolated** Ong agent — no session history, no source/DB/credentials, no skills. The only knowledge transfer is whatever you write into the cron prompt.
 
 Use it when the work genuinely needs agent intelligence (deep research, content composition, image gen). Tell it WHAT to do, not HOW — it's a real agent, not a workflow runner.
 
@@ -131,9 +131,9 @@ If the AGENT cron needs to write back to **this** site, the only path in is the 
 
 The endpoint receives `user.isCron === true` exactly like Heartbeat — no special-casing needed.
 
-### 4c. Owner UI on manus.im (NOT something you build)
+### 4c. Owner UI on ong.im (NOT something you build)
 
-The Manus dashboard surfaces ALL crons in the project (both end-user-driven and agent-driven), with execution history, pause/resume, edit, Run Now, and Investigate. Owners can't *create* crons there — only via §3 / §4a / §4b. Mention this to the user when they ask "how do I see/manage all my crons".
+The Ong dashboard surfaces ALL crons in the project (both end-user-driven and agent-driven), with execution history, pause/resume, edit, Run Now, and Investigate. Owners can't *create* crons there — only via §3 / §4a / §4b. Mention this to the user when they ask "how do I see/manage all my crons".
 
 ---
 
@@ -179,11 +179,11 @@ listHeartbeatJobs(userSession: string, pagination?: { page?: number; pageSize?: 
 
 `userSession` is the **decoded `app_session_id` cookie value**, NOT the raw Cookie header. All four functions throw `TRPCError` (UNAUTHORIZED / NOT_FOUND / TOO_MANY_REQUESTS / FORBIDDEN / BAD_REQUEST) — let trpc bubble them.
 
-### 5b. Sandbox CLI — `manus-heartbeat`
+### 5b. Sandbox CLI — `ongs-heartbeat`
 
 In-sandbox tool that hits the same backend as the SDK in §5a but with project owner identity (no end-user cookie). `BUILT_IN_FORGE_API_*` envs are pre-set on PATH; run from a sandbox terminal during this session.
 
-The table below is just an index — `manus-heartbeat <cmd> --help` is canonical for full flag lists and examples.
+The table below is just an index — `ong-heartbeat <cmd> --help` is canonical for full flag lists and examples.
 
 | Command | What |
 | --- | --- |

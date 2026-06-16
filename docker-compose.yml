@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  # Backend API (Go)
+  backend:
+    build:
+      context: ./ong-management-backend
+      dockerfile: Dockerfile
+    container_name: ong-gestor-pro-backend
+    ports:
+      - "8080:8080"
+    environment:
+      - DB_USER=${DB_USER:-root}
+      - DB_PASSWORD=${DB_PASSWORD:-rootpassword}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-ong_db}
+      - JWT_SECRET=${JWT_SECRET:-ong_management_secret_key_2026}
+      - PORT=8080
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - ong-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Frontend (React + Vite)
+  frontend:
+    build:
+      context: ./Ong-managment-front
+      dockerfile: Dockerfile
+    container_name: ong-gestor-pro-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - VITE_API_URL=http://backend:8080
+      - VITE_WS_URL=ws://backend:8080
+    depends_on:
+      - backend
+    networks:
+      - ong-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Database (MySQL)
+  db:
+    image: mysql:8.0
+    container_name: ong-gestor-pro-db
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_NAME:-ong_db}
+      - MYSQL_USER=${DB_USER:-root}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-rootpassword}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - ong-network
+    restart: unless-stopped
+
+networks:
+  ong-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local

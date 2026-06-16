@@ -4,10 +4,10 @@ import { childrenRouter } from "./children";
 describe("childrenRouter", () => {
   const mockUser = {
     id: 1,
-    openId: "test-user",
+    openId: null,
     email: "test@example.com",
     name: "Test User",
-    loginMethod: "manus",
+    loginMethod: "jwt",
     role: "user" as const,
     createdAt: new Date(),
     updatedAt: new Date(),
