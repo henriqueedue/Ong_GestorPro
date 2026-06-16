@@ -2,6 +2,7 @@ package models
 
 import (
 	"time"
+
 	"gorm.io/gorm"
 )
 
@@ -40,15 +41,15 @@ type Incident struct {
 }
 
 type Medicine struct {
-	ID          uint           `gorm:"primaryKey" json:"id"`
-	ChildID     uint           `json:"child_id"`
-	Child       Child          `gorm:"foreignKey:ChildID" json:"child"`
-	Name        string         `gorm:"size:255;not null" json:"name"`
-	Dosage      string         `gorm:"size:100" json:"dosage"`
-	Schedule    string         `gorm:"size:255" json:"schedule"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
-	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	ChildID   uint           `json:"child_id"`
+	Child     Child          `gorm:"foreignKey:ChildID" json:"child"`
+	Name      string         `gorm:"size:255;not null" json:"name"`
+	Dosage    string         `gorm:"size:100" json:"dosage"`
+	Schedule  string         `gorm:"size:255" json:"schedule"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 type Shift struct {

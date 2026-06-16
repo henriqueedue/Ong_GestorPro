@@ -2,18 +2,24 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Heart, Loader2 } from "lucide-react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter"; 
 import axios from "axios";
+import { getApiUrl } from "@/const";
 
 export default function Login() {
+  // 1. Estados locais para o formulário
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isRegister, setIsRegister] = useState(false);
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // 2. Hook de autenticação
   const { login } = useAuth();
-  const navigate = useNavigate();
+
+  // 3. Navegação
+  const [, navigate] = useLocation();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,12 +30,15 @@ export default function Login() {
       const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
       const payload = isRegister ? { name, email, password } : { email, password };
 
-      const response = await axios.post(endpoint, payload);
+      const response = await axios.post(`${getApiUrl()}${endpoint}`, payload);
 
       if (!isRegister) {
         const token = response.data.token;
+        // Atualiza o estado interno e salva no localStorage
         await login(token);
-        navigate("/");
+        
+        // Força o recarregamento total para atualizar o estado global de autenticação
+        window.location.href = "/";
       } else {
         setIsRegister(false);
         setError("Cadastro realizado com sucesso! Faça login para continuar.");
@@ -140,12 +149,6 @@ export default function Login() {
                 ? "Já tem conta? Faça login"
                 : "Não tem conta? Cadastre-se"}
             </button>
-          </div>
-
-          <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-            <p className="text-xs text-center text-slate-500 dark:text-slate-400">
-              Sistema seguro com autenticação JWT
-            </p>
           </div>
         </div>
       </div>

@@ -31,7 +31,6 @@ export async function createContext(
             email: payload.email as string,
             openId: null,
             loginMethod: "jwt",
-            lastSignedIn: new Date(),
             createdAt: new Date(),
             updatedAt: new Date(),
           };

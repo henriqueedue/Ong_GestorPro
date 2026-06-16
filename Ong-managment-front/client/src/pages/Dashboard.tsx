@@ -5,20 +5,36 @@ import MedicinesTab from "./tabs/MedicinesTab";
 import IncidentsTab from "./tabs/IncidentsTab";
 import ShiftsTab from "./tabs/ShiftsTab";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AddChildModal } from "@/components/AddChildModal";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("children");
 
+  // Esta função é chamada após o cadastro bem-sucedido
+  const handleSuccess = () => {
+    // Se estiver usando um contexto de estado global ou React Query, 
+    // você dispararia a invalidação do cache aqui.
+    // Como alternativa simples, forçamos o refresh do componente ou da página:
+    window.location.reload(); 
+  };
+
   return (
     <DashboardLayout>
       <div className="flex-1 flex flex-col h-full">
-        <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-700">
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
-            Gestão de Crianças
-          </h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-2">
-            Sistema de gerenciamento de plantão e cuidados
-          </p>
+        <div className="px-8 py-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+          <div>
+            <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
+              Gestão de Crianças
+            </h1>
+            <p className="text-slate-600 dark:text-slate-400 mt-2">
+              Sistema de gerenciamento de plantão e cuidados
+            </p>
+          </div>
+
+          {/* Botão contextual que aparece apenas na aba de crianças */}
+          {activeTab === "children" && (
+            <AddChildModal onSuccess={handleSuccess} />
+          )}
         </div>
 
         <div className="flex-1 overflow-auto">

@@ -12,14 +12,23 @@ export function useAuth() {
     const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       try {
+        // Tenta decodificar o token
         const payload = JSON.parse(atob(token.split(".")[1]));
+        
+        // Adicione uma verificação básica de expiração se o seu JWT tiver o campo 'exp'
+        if (payload.exp && Date.now() >= payload.exp * 1000) {
+          throw new Error("Token expirado");
+        }
+
         setUser({
           id: payload.user_id,
           name: payload.name || "Usuário",
           email: payload.email || "",
         });
       } catch {
+        // Se qualquer coisa falhar, removemos o token inválido
         localStorage.removeItem(TOKEN_KEY);
+        setUser(null);
       }
     }
     setLoading(false);

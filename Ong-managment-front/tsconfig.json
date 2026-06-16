@@ -2,7 +2,10 @@
   "include": [
     "client/src/**/*",
     "shared/**/*",
-    "server/**/*"
+    "server/**/*",
+    "drizzle.config.ts",
+    "**/*.ts",
+    "**/*.tsx"
   ],
   "exclude": [
     "node_modules",
@@ -34,7 +37,7 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
 
-    "allowJs": false,
+    "allowJs": true,
     "forceConsistentCasingInFileNames": true,
 
     "types": [
@@ -42,12 +45,9 @@
     ],
 
     "paths": {
-      "@/*": [
-        "./client/src/*"
-      ],
-      "@shared/*": [
-        "./shared/*"
-      ]
+      "@/*": ["./client/src/*"],
+      "@shared/*": ["./shared/*"],
+      "@drizzle/*": ["./drizzle/*"]
     }
   }
 }

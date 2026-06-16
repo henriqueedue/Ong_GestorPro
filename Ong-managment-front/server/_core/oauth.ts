@@ -1,5 +1,7 @@
 import type { Express } from "express";
-import * as db from "../db";
+
+// 🌟 CORREÇÃO: Adicionado o '.js' no final para o Node.js em produção encontrar o arquivo
+import * as db from "../db.js"; 
 
 export function registerOAuthRoutes(app: Express) {
   // JWT authentication is handled directly in the frontend

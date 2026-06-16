@@ -1,6 +1,8 @@
 export const ENV = {
-  cookieSecret: process.env.JWT_SECRET ?? "",
-  databaseUrl: process.env.DATABASE_URL ?? "",
+  cookieSecret: process.env.COOKIE_SECRET || "supersecret",
+  databaseUrl: process.env.DATABASE_URL || "",
   isProduction: process.env.NODE_ENV === "production",
-  apiUrl: process.env.VITE_API_URL ?? "http://localhost:8080",
+  apiUrl: process.env.API_URL || "http://localhost:3000",
+  // ADICIONE ESTA LINHA:
+  ownerOpenId: process.env.OWNER_OPEN_ID || "", 
 };

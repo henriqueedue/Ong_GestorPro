@@ -15,6 +15,13 @@
       "when": 1780954087440,
       "tag": "0001_greedy_nightcrawler",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1781582927568,
+      "tag": "0002_modern_omega_flight",
+      "breakpoints": true
     }
   ]
 }
