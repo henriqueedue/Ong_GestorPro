@@ -1,0 +1,120 @@
+// Google Maps API Integration for Ong Gestor Pro
+// Uses standard Google Maps API with API key
+
+// ============================================================================
+// Configuration
+// ============================================================================
+
+type MapsConfig = {
+  apiKey: string;
+};
+
+function getMapsConfig(): MapsConfig {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+
+  if (!apiKey) {
+    throw new Error(
+      "Google Maps API key missing: set GOOGLE_MAPS_API_KEY in environment"
+    );
+  }
+
+  return { apiKey };
+}
+
+// ============================================================================
+// Core Request Handler
+// ============================================================================
+
+interface RequestOptions {
+  method?: "GET" | "POST";
+  body?: Record<string, unknown>;
+}
+
+/**
+ * Make authenticated requests to Google Maps APIs
+ */
+export async function makeRequest<T = unknown>(
+  endpoint: string,
+  params: Record<string, unknown> = {},
+  options: RequestOptions = {}
+): Promise<T> {
+  const { apiKey } = getMapsConfig();
+
+  const url = new URL(`https://maps.googleapis.com${endpoint}`);
+
+  url.searchParams.append("key", apiKey);
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      url.searchParams.append(key, String(value));
+    }
+  });
+
+  const response = await fetch(url.toString(), {
+    method: options.method || "GET",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      `Google Maps API request failed (${response.status} ${response.statusText}): ${errorText}`
+    );
+  }
+
+  return (await response.json()) as T;
+}
+
+// ============================================================================
+// Type Definitions
+// ============================================================================
+
+export type TravelMode = "driving" | "walking" | "bicycling" | "transit";
+export type MapType = "roadmap" | "satellite" | "terrain" | "hybrid";
+
+export type LatLng = {
+  lat: number;
+  lng: number;
+};
+
+export type DirectionsResult = {
+  routes: Array<{
+    legs: Array<{
+      distance: { text: string; value: number };
+      duration: { text: string; value: number };
+      start_address: string;
+      end_address: string;
+      start_location: LatLng;
+      end_location: LatLng;
+    }>;
+    overview_polyline: { points: string };
+  }>;
+  status: string;
+};
+
+export type GeocodingResult = {
+  results: Array<{
+    formatted_address: string;
+    geometry: {
+      location: LatLng;
+    };
+    place_id: string;
+  }>;
+  status: string;
+};
+
+export type PlacesSearchResult = {
+  results: Array<{
+    place_id: string;
+    name: string;
+    formatted_address: string;
+    geometry: {
+      location: LatLng;
+    };
+    rating?: number;
+  }>;
+  status: string;
+};

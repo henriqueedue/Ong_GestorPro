@@ -1,0 +1,347 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
+import { Plus, Edit2, Trash2, Clock, User, Eye } from "lucide-react";
+import axios from "axios";
+import { getApiUrl } from "@/const";
+
+export default function ShiftsTab() {
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [viewingShift, setViewingShift] = useState<any | null>(null);
+  const [shifts, setShifts] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    shift: "morning",
+    responsible: "",
+    startTime: "",
+    endTime: "",
+    observations: "",
+  });
+
+  const shiftConfig = {
+    morning: { label: "Matutino (6h - 14h)", color: "bg-amber-100 dark:bg-amber-900" },
+    afternoon: { label: "Vespertino (14h - 22h)", color: "bg-orange-100 dark:bg-orange-900" },
+    night: { label: "Noturno (22h - 6h)", color: "bg-indigo-100 dark:bg-indigo-900" },
+  };
+
+  const fetchShifts = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("ong-gestor-pro-token");
+      const res = await axios.get(`${getApiUrl()}/api/shifts/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setShifts(res.data);
+    } catch (e) {
+      console.error("Erro ao carregar plantões", e);
+      toast.error("Erro ao carregar lista de plantões.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchShifts();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("ong-gestor-pro-token");
+
+      const payload = {
+        shift: formData.shift,
+        responsible: formData.responsible,
+        observations: formData.observations,
+        start_time: formData.startTime ? `${formData.startTime}:00Z` : undefined,
+        end_time: formData.endTime ? `${formData.endTime}:00Z` : undefined,
+      };
+
+      if (editingId) {
+        await axios.put(`${getApiUrl()}/api/shifts/${editingId}`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Plantão atualizado com sucesso!");
+      } else {
+        await axios.post(`${getApiUrl()}/api/shifts/`, payload, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Plantão registrado com sucesso!");
+      }
+      setOpen(false);
+      setEditingId(null);
+      setFormData({ shift: "morning", responsible: "", startTime: "", endTime: "", observations: "" });
+      await fetchShifts();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao salvar plantão");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (shiftId: number) => {
+    if (!confirm("Tem certeza que deseja remover este plantão?")) return;
+    try {
+      const token = localStorage.getItem("ong-gestor-pro-token");
+      await axios.delete(`${getApiUrl()}/api/shifts/${shiftId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Plantão removido com sucesso!");
+      await fetchShifts();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao remover plantão");
+    }
+  };
+
+  const handleEdit = (shift: any) => {
+    setEditingId(shift.id);
+    setViewingShift(null);
+    setFormData({
+      shift: shift.shift,
+      responsible: shift.responsible,
+      startTime: shift.start_time ? shift.start_time.split('T')[0] : "",
+      endTime: shift.end_time ? shift.end_time.split('T')[0] : "",
+      observations: shift.observations || "",
+    });
+    setOpen(true);
+  };
+
+  const handleView = (shift: any) => {
+    setViewingShift(shift);
+    setEditingId(null);
+    setOpen(true);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Spinner />
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Plantão
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Gerencie a passagem de plantão
+          </p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button
+              onClick={() => {
+                setEditingId(null);
+                setViewingShift(null);
+                setFormData({ shift: "morning", responsible: "", startTime: "", endTime: "", observations: "" });
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Plantão
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {viewingShift ? "Detalhes do Plantão" : editingId ? "Editar Plantão" : "Registrar Novo Plantão"}
+              </DialogTitle>
+              <DialogDescription>
+                {viewingShift ? "Informações detalhadas sobre a passagem de plantão" : "Preencha os dados da passagem de plantão"}
+              </DialogDescription>
+            </DialogHeader>
+
+            {viewingShift ? (
+              <div className="space-y-4 py-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-500">Turno</p>
+                    <p className="font-semibold">{shiftConfig[viewingShift.shift as keyof typeof shiftConfig]?.label || viewingShift.shift}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-500">Responsável</p>
+                    <p className="font-semibold">{viewingShift.responsible}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-500">Início</p>
+                    <p className="font-semibold">{viewingShift.start_time ? new Date(viewingShift.start_time).toLocaleString("pt-BR") : "N/A"}</p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium text-slate-500">Término</p>
+                    <p className="font-semibold">{viewingShift.end_time ? new Date(viewingShift.end_time).toLocaleString("pt-BR") : "N/A"}</p>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-slate-500">Observações</p>
+                  <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-900 dark:text-white italic">
+                    {viewingShift.observations || "Nenhuma observação registrada."}
+                  </div>
+                </div>
+                <Button className="w-full" onClick={() => setOpen(false)}>Fechar</Button>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Turno</label>
+                  <Select
+                    value={formData.shift}
+                    onValueChange={(val) => setFormData({...formData, shift: val})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="morning">Matutino (6h - 14h)</SelectItem>
+                      <SelectItem value="afternoon">Vespertino (14h - 22h)</SelectItem>
+                      <SelectItem value="night">Noturno (22h - 6h)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Plantonista Responsável</label>
+                  <Input
+                    placeholder="Nome do plantonista"
+                    value={formData.responsible}
+                    onChange={(e) => setFormData({...formData, responsible: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium">Início</label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.startTime}
+                      onChange={(e) => setFormData({...formData, startTime: e.target.value})}
+                      required
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <label className="text-sm font-medium">Término</label>
+                    <Input
+                      type="datetime-local"
+                      value={formData.endTime}
+                      onChange={(e) => setFormData({...formData, endTime: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium">Observações</label>
+                  <Textarea
+                    placeholder="Observações gerais do plantão"
+                    value={formData.observations}
+                    onChange={(e) => setFormData({...formData, observations: e.target.value})}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700"
+                  disabled={isSaving}
+                >
+                  {isSaving ? <><Spinner className="w-4 h-4 mr-2" /> Salvando...</> : "Salvar"}
+                </Button>
+              </form>
+            )}
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="grid gap-4">
+        {shifts && shifts.length > 0 ? (
+          shifts.map((shift: any) => {
+            const config = shiftConfig[shift.shift as keyof typeof shiftConfig] || shiftConfig.morning;
+            return (
+              <Card key={shift.id} className="hover:shadow-md transition-shadow">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3 flex-1">
+                      <div className={`${config.color} p-3 rounded-lg`}>
+                        <Clock className="w-5 h-5 text-slate-600 dark:text-slate-400" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CardTitle className="text-lg">{config.label}</CardTitle>
+                        </div>
+                        <CardDescription className="flex items-center gap-1 mt-1">
+                          <User className="w-4 h-4" />
+                          {shift.responsible}
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleView(shift)}
+                        title="Visualizar Detalhes"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(shift)}
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(shift.id)}
+                      >
+                        <Trash2 className="w-4 h-4 text-red-600" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-slate-600 dark:text-slate-400">Início</p>
+                      <p className="font-semibold text-slate-900 dark:text-white">
+                        {shift.start_time ? new Date(shift.start_time).toLocaleString("pt-BR") : "N/A"}
+                      </p>
+                    </div>
+                    {shift.end_time && (
+                      <div>
+                        <p className="text-slate-600 dark:text-slate-400">Término</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">
+                          {shift.end_time ? new Date(shift.end_time).toLocaleString("pt-BR") : "N/A"}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  {shift.observations && (
+                    <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <p className="text-slate-600 dark:text-slate-400 text-sm">Observações</p>
+                      <p className="text-slate-900 dark:text-white line-clamp-2">{shift.observations}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })
+        ) : (
+          <Card className="text-center py-12">
+            <Clock className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+            <p className="text-slate-600 dark:text-slate-400">Nenhum plantão registrado</p>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}

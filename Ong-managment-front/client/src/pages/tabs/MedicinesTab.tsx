@@ -1,0 +1,295 @@
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
+import { Plus, Edit2, Trash2, Pill, Clock } from "lucide-react";
+import axios from "axios";
+import { getApiUrl } from "@/const";
+
+export default function MedicinesTab() {
+  const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [selectedChildId, setSelectedChildId] = useState<number | null>(null);
+  const [children, setChildren] = useState([]);
+  const [medicines, setMedicines] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [formData, setFormData] = useState({
+    child_id: 0,
+    name: "",
+    dosage: "",
+    schedule: "",
+    responsible: "",
+  });
+
+  const fetchChildren = async () => {
+    try {
+      const token = localStorage.getItem("ong-gestor-pro-token");
+      const res = await axios.get(`${getApiUrl()}/api/children/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setChildren(res.data);
+    } catch (e) {
+      console.error("Erro ao carregar crianças", e);
+    }
+  };
+
+  const fetchMedicines = async () => {
+    if (!selectedChildId) return;
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("ong-gestor-pro-token");
+      const res = await axios.get(`${getApiUrl()}/api/medicines/`, {
+        params: { child_id: selectedChildId },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setMedicines(res.data);
+    } catch (e) {
+      console.error("Erro ao carregar remédios", e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchChildren();
+  }, []);
+
+  useEffect(() => {
+    fetchMedicines();
+  }, [selectedChildId]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("ong-gestor-pro-token");
+      if (editingId) {
+        await axios.put(`${getApiUrl()}/api/medicines/${editingId}`, formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Remédio atualizado com sucesso!");
+      } else {
+        await axios.post(`${getApiUrl()}/api/medicines/`, formData, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        toast.success("Remédio cadastrado com sucesso!");
+      }
+      setOpen(false);
+      setEditingId(null);
+      setFormData({ child_id: 0, name: "", dosage: "", schedule: "", responsible: "" });
+      await fetchMedicines();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao salvar remédio");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async (medicineId: number) => {
+    if (!confirm("Tem certeza que deseja remover este remédio?")) return;
+    try {
+      const token = localStorage.getItem("ong-gestor-pro-token");
+      await axios.delete(`${getApiUrl()}/api/medicines/${medicineId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Remédio removido com sucesso!");
+      await fetchMedicines();
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || "Erro ao remover remédio");
+    }
+  };
+
+  const handleEdit = (medicine: any) => {
+    setEditingId(medicine.id);
+    setFormData({
+      child_id: medicine.child_id,
+      name: medicine.name,
+      dosage: medicine.dosage,
+      schedule: medicine.schedule,
+      responsible: medicine.responsible || "Não informado",
+    });
+    setOpen(true);
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+            Remédios
+          </h2>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Gerencie os medicamentos das crianças
+          </p>
+        </div>
+        <Dialog open={open} onOpenChange={setOpen}>
+          <DialogTrigger asChild>
+            <Button
+              onClick={() => {
+                setEditingId(null);
+                setFormData({ child_id: selectedChildId || 0, name: "", dosage: "", schedule: "", responsible: "" });
+              }}
+              disabled={!selectedChildId}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Remédio
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>
+                {editingId ? "Editar Remédio" : "Cadastrar Novo Remédio"}
+              </DialogTitle>
+              <DialogDescription>
+                Preencha os dados do medicamento
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Nome do Remédio</label>
+                <Input
+                  placeholder="Nome do medicamento"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Dose</label>
+                <Input
+                  placeholder="Ex: 5ml, 1 comprimido"
+                  value={formData.dosage}
+                  onChange={(e) => setFormData({...formData, dosage: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Horário</label>
+                <Input
+                  type="time"
+                  value={formData.schedule}
+                  onChange={(e) => setFormData({...formData, schedule: e.target.value})}
+                  required
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium">Responsável</label>
+                <Input
+                  placeholder="Nome de quem administra"
+                  value={formData.responsible}
+                  onChange={(e) => setFormData({...formData, responsible: e.target.value})}
+                  required
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full bg-blue-600 hover:bg-blue-700"
+                disabled={isSaving}
+              >
+                {isSaving ? <><Spinner className="w-4 h-4 mr-2" /> Salvando...</> : "Salvar"}
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Selecione uma Criança
+          </label>
+          <Select
+            value={selectedChildId?.toString() || ""}
+            onValueChange={(value) => {
+              setSelectedChildId(parseInt(value));
+            }}
+          >
+            <SelectTrigger className="mt-2">
+              <SelectValue placeholder="Escolha uma criança" />
+            </SelectTrigger>
+            <SelectContent>
+              {children.map((child: any) => (
+                <SelectItem key={child.id} value={child.id.toString()}>
+                  {child.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {selectedChildId && (
+          <div className="grid gap-4">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-48">
+                <Spinner />
+              </div>
+            ) : medicines && medicines.length > 0 ? (
+              medicines.map((medicine: any) => (
+                <Card key={medicine.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                          <Pill className="w-5 h-5 text-green-600 dark:text-green-400" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg">{medicine.name}</CardTitle>
+                          <CardDescription>
+                            Dose: {medicine.dose || medicine.dosage}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(medicine)}
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(medicine.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-600" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-slate-400" />
+                        <div>
+                          <p className="text-slate-600 dark:text-slate-400">Horário</p>
+                          <p className="font-semibold text-slate-900 dark:text-white">{medicine.time || medicine.schedule}</p>
+                        </div>
+                      </div>
+                      <div>
+                        <p className="text-slate-600 dark:text-slate-400">Responsável</p>
+                        <p className="font-semibold text-slate-900 dark:text-white">{medicine.responsible}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))
+            ) : (
+              <Card className="text-center py-12">
+                <Pill className="w-12 h-12 text-slate-400 mx-auto mb-4" />
+                <p className="text-slate-600 dark:text-slate-400">Nenhum remédio cadastrado</p>
+              </Card>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
